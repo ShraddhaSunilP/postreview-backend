@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const usersSchema = new mongoose.Schema({
     name: { type: String, required: true, trim: true, index: true },  // trim added
     email: { type: String, required: true, unique: true, trim: true, index: true },  // trim added
+    password : { type : String, required: true,trim: true, index: true},
     mobile: { type: String, required: true, unique: true, trim: true, index: true },  // trim added
     designation: { type: String, required: true, trim: true, index: true },  // trim added
     isAdmin: { type: Boolean, default: false },

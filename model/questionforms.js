@@ -1,17 +1,13 @@
 const mongoose = require('mongoose');
 
 const questionsSchema = new mongoose.Schema({
-    merchantInfoId: { type: mongoose.Schema.Types.ObjectId, ref: 'merchantsinfos', required: true, index: true }, 
-    logo: { type: String, required: true, unique: true, trim: true },  
-    brandColor: { type: String, required: true, trim: true }, 
-    textColor:{ type:String, required: true}, 
+    merchantInfoId: { type: mongoose.Schema.Types.ObjectId, ref: 'merchantsinfos', required: true, index: true },  
     question1: { type: String, required: true, trim: true },
     question1Keywords: { type: [String], required: true }, 
     question2: { type: String, required: true, trim: true },  
     question2Keywords: { type: [String], required: true }, 
-    blockNegativeReview: { type: Boolean, default: false },
 }, { 
-    timestamps: true  // Automatically adds createdAt and updatedAt fields
+    timestamps: true  // Automatically adds createdAt and updatedAt felds
 });
 
 module.exports = mongoose.model('questionforms', questionsSchema);
