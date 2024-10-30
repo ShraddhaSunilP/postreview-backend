@@ -1,14 +1,18 @@
 const mongoose = require("mongoose");
+const multer = require('multer');
+
+const storage = multer.memoryStorage(); // Use memory storage for simplicity
+const upload = multer({ storage: storage });
 
 const merchantsinfoSchema = new mongoose.Schema({ 
    name: { type: String, required: true, trim: true, index: true },  // trim added
-   businessname :{ type:String, required:true, maxlength:15},
+   businessname :{ type:String, required:true, maxlength:15, unique:true},
    // email : { type:String, required:true, trim:true, unique:true },
-   password: { type: String, required: true, trim:true },
-   activationLink : { type:String, required:true, trim:true },
+   //password: { type: String, required: true, trim:true },
+   //activationLink : { type:String, required:true, trim:true },
    businessCategory:{ type: String, required:true, trim:true},
    // businessCategoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'businesscategorys', required: true, index: true },
-   logo: { type: String, required: true, unique:true},   
+   logo: { type: Buffer, required: true, unique:true},   
    // mobile: { type: String, required: true, unique: true, trim: true, index: true }, 
    themeColor: { type: String, required: true, trim: true }, 
    textColor:{ type: String, required: true, trim: true},
@@ -19,7 +23,7 @@ const merchantsinfoSchema = new mongoose.Schema({
    googlereviewURL: { type: String, required: true, unique: true, trim: true },  
    // physicalAddress: { type: String, required: true, trim: true },   
    isActiveSubscription: { type: Boolean, default: true },
-   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
+   //createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
    modifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'users', default: null },
    negativeRevireMessage: { type: String, requied: true}
 }, { 

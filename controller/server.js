@@ -3,6 +3,13 @@ const express = require('express');
 const cors = require('cors');
 require("dotenv").config();
 require("./db");
+const axios = require("axios");
+const FAST2SMS_API_KEY = process.env.FAST2SMS_API_KEY;
+
+const multer = require('multer');
+const storage = multer.memoryStorage(); 
+const upload = multer({ storage: storage }); 
+
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 
@@ -20,6 +27,9 @@ const app = express();
 
 app.use(express.json());
 app.use(cors());
+
+// In-memory storage for OTPs (use a database in production)
+let otpStore = {};
 
 // // Signup Users 
 // app.post("/registerUser", async(req,res) => {
@@ -198,19 +208,48 @@ app.delete("/businesscategories/:id", async (req, res) => {
 });
 
 // register MerchantsInfo
-app.post("/merchantsinfos", async (req, res) => {
+app.post("/merchantsinfos", upload.single('logo'), async (req, res) => { // Add multer middleware
   try {
     if (req.body.password) {
       req.body.password = await bcrypt.hash(req.body.password, saltRounds);
     }
 
-    let merchantsinfo = new MerchantsInfo(req.body);
+    let merchantsinfo = new MerchantsInfo({
+      ...req.body,
+      logo: req.file ? req.file.buffer : undefined // Add logo from file buffer if uploaded
+    });
+
     let result = await merchantsinfo.save();
 
     res.status(201).send({ message: "Merchant info added successfully", data: result });
   } catch (error) {
     console.error(error);
     res.status(500).send({ error: "An error occurred while adding merchant info" });
+  }
+});
+
+//check business name
+app.post('/check-unique', async (req, res) => {
+  const { businessName } = req.body;
+
+  if (!businessName) {
+    return res.status(400).json({ error: 'Business name is required.' });
+  }
+
+  try {
+    // Check if the business name already exists in the database
+    const existingBusiness = await MerchantsInfo.findOne({ businessname: businessName });
+
+    if (existingBusiness) {
+      // If it exists, send a response indicating it's not unique
+      return res.status(409).json({ unique: false });
+    }
+
+    // If it doesn't exist, send a response indicating it's unique
+    return res.status(200).json({ unique: true });
+  } catch (error) {
+    
+    return res.status(500).json({ error: 'Server error during business name validation' });
   }
 });
 
@@ -234,7 +273,11 @@ app.get("/merchantsinfos/:businessname", async (req, res) => {
   try {
     let result = await MerchantsInfo.findOne({ businessname: req.params.businessname });
     if (result) {
-      res.status(200).send(result);
+      console.log(result._id);
+      res.status(200).send(result._id);
+      console.log(result._id);
+      let questions = await Questionforms.find({ merchantInfoId: result._id });
+      res.status(200).send(questions);
     } else {
       res.status(404).send({ message: "No record found." });
     }
@@ -354,7 +397,7 @@ app.delete("/negativeReviews/:id", async (req, res) => {
       return res.status(404).send({ error: "No negativeReview found with the given ID." });
     }
 
-    res.send({ message: "negativeReview deleted successfully", result });
+    res.status(200).send({ message: "negativeReview deleted successfully", result });
   } catch (error) {
     res.status(500).send({ error: "An error occurred while trying to delete the negativeReview. Please try again later." });
   }
@@ -560,12 +603,53 @@ function verifyToken(req, res, next) {
   }
 }
 
+// Function to send OTP
+const sendOtp = async (mobileNumber, otp) => {
+  const url = `https://www.fast2sms.com/dev/bulkV2?authorization=${FAST2SMS_API_KEY}&message=Your OTP is ${otp}&sender_id=FSTSMS&language=english&route=p&numbers=${mobileNumber}`;
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  try {
+      const response = await axios.get(url);
+      return response.data;
+  } catch (error) {
+      console.error('Error sending OTP:', error);
+      throw error;
+  }
+};
+
+// Route to send OTP
+app.post('/send-otp', async (req, res) => {
+  const { mobileNumber } = req.body;
+  console.log(`Received mobileNumber: ${mobileNumber}`); // Log the received mobileNumber
+  const otp = Math.floor(100000 + Math.random() * 900000); 
+
+  try {
+      await sendOtp(mobileNumber, otp);
+      otpStore[mobileNumber] = otp; 
+      console.log('Stored OTPs:', otpStore);
+      res.status(200).json({ message: 'OTP sent successfully!' });
+  } catch (error) {
+      res.status(500).json({ message: 'Failed to send OTP.' });
+  }
+});
+
+// Route to verify OTP
+app.post('/verify-otp', (req, res) => {
+  const { mobileNumber, otp } = req.body;
+
+  console.log(`Verifying OTP for ${mobileNumber} : Received OTP = ${otp} Stored OTP = ${otpStore[mobileNumber]}`);
+
+  if (otpStore[mobileNumber] && otpStore[mobileNumber] === otp) {
+      delete otpStore[mobileNumber];
+      return res.status(200).json({ message: 'OTP verified successfully!' });
+  }
+  res.status(400).json({ message: 'Invalid OTP.' });
 });
 
 
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`); 
+});
+
 // Base Url
-// test.postAIreview.com
+// test.postAIreview.com  
