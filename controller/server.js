@@ -31,6 +31,76 @@ app.use(cors());
 // In-memory storage for OTPs (use a database in production)
 let otpStore = {};
 
+const Merchantinfos = mongoose.model("Merchantinfos", new mongoose.Schema({}));
+const QuestionsForm = mongoose.model("QuestionsForm", new mongoose.Schema({}));
+
+app.get("/api/getData", async (req, res) => {
+  try {
+    const { param1, param2 } = req.query;
+    console.log("req.query:", req.query);
+
+    if (!param1 || !param2) {
+      return res.status(400).json({
+        error: "param1 and param2 are required",
+      });
+    }
+
+    // Fetch specific fields from MerchantsTable
+    const merchantData = await MerchantsInfo.findOne(
+      { businessname: new RegExp(`^${param1}$`, "i") }, // Case-insensitive match
+      "logo businessname businessCategory themeColor textColor googlereviewURL"
+    );
+    console.log("merchantData:", merchantData);
+    if (!merchantData) {
+      return res.status(404).json({ error: "Merchant not found" });
+    }
+
+    // Fetch specific fields from QuestionTable
+    const questionData = await Questionforms.findOne(
+      { _id: param2 },
+      "_id question1 question1Keywords question2 question2Keywords"
+    );
+    console.log("questionData:", questionData);
+    if (!questionData) {
+      return res.status(404).json({ error: "Question form not found" });
+    }
+
+    // Destructure the fields for response
+    const {
+      logo,
+      businessname,
+      businessCategory,
+      themeColor,
+      textColor,
+      googlereviewURL,
+    } = merchantData;
+    const { _id, question1, question1Keywords, question2, question2Keywords } =
+      questionData;
+
+    res.json({
+      MerchantsTable: {
+        logo,
+        businessname,
+        businessCategory,
+        themeColor,
+        textColor,
+        googlereviewURL,
+      },
+      QuestionTable: {
+        _id,
+        question1,
+        question1Keywords,
+        question2,
+        question2Keywords,
+      },
+    });
+  } catch (error) {
+    console.error("Error retrieving data:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
 // // Signup Users 
 // app.post("/registerUser", async(req,res) => {
 //   try{
