@@ -6,8 +6,7 @@ const questionsSchema = new mongoose.Schema({
     question1Keywords: { type: [String], required: true }, 
     question2: { type: String, required: true, trim: true },  
     question2Keywords: { type: [String], required: true }, 
-}, { 
-    timestamps: true  // Automatically adds createdAt and updatedAt felds
-});
-
-module.exports = mongoose.model('questionforms', questionsSchema);
+},{ 
+    timestamps: true  // Automatically adds createdAt and updatedAt fields
+ });
+    module.exports = mongoose.model('questionforms', questionsSchema);
